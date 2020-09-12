@@ -4,18 +4,15 @@ function initMap() {
       document.getElementById('map'),
       {center: new google.maps.LatLng(-33.91722, 151.23064), zoom: 16});
 
-  var iconBase =
-      'https://developers.google.com/maps/documentation/javascript/examples/full/images/';
-
   var icons = {
     parking: {
-      icon: iconBase + 'parking_lot_maps.png'
+      icon: 'searchicon.png'
     },
     library: {
-      icon: iconBase + 'library_maps.png'
+      icon: 'searchicon.png'
     },
     info: {
-      icon: iconBase + 'info-i_maps.png'
+      icon: 'searchicon.png'
     }
   };
 
