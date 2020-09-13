@@ -6,13 +6,13 @@ function initMap() {
 
   var icons = {
     parking: {
-      icon: 'ok.svg'
+      icon: 'static/ok.svg'
     },
     library: {
-      icon: 'ok.svg'
+      icon: 'static/ok.svg'
     },
     info: {
-      icon: 'ok.svg'
+      icon: 'static/ok.svg'
     }
   };
 
