@@ -6,19 +6,59 @@
     android:layout_height="match_parent"
     tools:context="com.example.hophacks.MainActivity">
     <fragment
+        android:id="@+id/autocomplete_fragment"
+        android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="0dp" />
+
+    <fragment
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="550dp"
+        android:layout_marginTop="50dp"
         tools:context="com.example.hophacks.MainActivity"
         tools:layout="@android:layout/simple_spinner_dropdown_item"/>
+
+    <LinearLayout
+        android:id="@+id/checkboxs"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="600dp"
+        android:layout_marginLeft="10dp">
+    <TextView
+        android:id="@+id/MaskRequired"
+        android:layout_width="100dp"
+        android:layout_height="50dp"
+        android:text="Mask Required"/>
+    <CheckBox
+        android:id="@+id/mask_required"
+        android:layout_width="50dp"
+        android:layout_height="50dp"/>
+    <TextView
+        android:id="@+id/SanitizerAvailable"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:text="Sanitizer Available" />
+    <CheckBox
+        android:id="@+id/sanitizer_available"
+        android:layout_width="50dp"
+        android:layout_height="50dp"/>
+    <Button
+        android:id="@+id/submit"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:text="Submit" />
+    </LinearLayout>
+
 
     <Button
         android:id="@+id/btnLogOut"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
 
-        android:layout_marginTop="600dp"
+        android:layout_marginTop="650dp"
         android:text="Logout" />
 </FrameLayout>
 
