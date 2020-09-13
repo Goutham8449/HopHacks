@@ -6,13 +6,13 @@ function initMap() {
 
   var icons = {
     parking: {
-      icon: 'ok.svg'
+      icon: 'static/ok.svg'
     },
     library: {
-      icon: 'ok.svg'
+      icon: 'static/ok.svg'
     },
     info: {
-      icon: 'ok.svg'
+      icon: 'static/ok.svg'
     }
   };
 
@@ -86,7 +86,33 @@ function initMap() {
     });
   };
 }
-setTimeout(() => {
-//	map.setCenter(new google.maps.LatLng(-33.91722, 200));
-  map.setZoom(20);
-}, 9);
+
+$(document).ready(() => {
+  $('#mcdonalds').click(() => {
+	  map.setCenter(new google.maps.LatLng(-33.91722, 200));
+    map.setZoom(20);
+  });
+
+  $('input').keyup(() => {
+    let val = $('input').val();
+    if (val.length > 2){
+    if ('mcdonalds'.startsWith(val)) {
+      $('#mcdonalds').show();
+    } else {
+      $('#mcdonalds').hide();
+    }
+    if ('library'.startsWith(val)) {
+      $('#library').show();
+    } else {
+      $('#library').hide();
+    }
+    if ('barbershop'.startsWith(val)) {
+      $('#barbershop').show();
+    } else {
+      $('#barbershop').hide();
+    }
+    }
+  });
+});
+
+
