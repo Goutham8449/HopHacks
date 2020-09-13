@@ -21,6 +21,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import com.android.volley.Request;
@@ -36,6 +37,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -62,6 +64,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class UserActivity extends FragmentActivity implements OnMapReadyCallback {
     Button btnLogOut;
@@ -85,6 +88,16 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user);
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) !=
+                        PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[] {
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION },
+                    REQUEST_CODE_LOCATION_PERMISSION);
+        }
+
         checkboxsHashMap = new HashMap<>();
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
@@ -134,62 +147,7 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
             mLastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         }
 
-        if (mLastLocation != null ) {
 
-            String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
-                    "location=" +
-                    mLastLocation.getLatitude() +
-                    "," +
-                    mLastLocation.getLongitude() +
-                    "&radius=800" +
-                    "&type=restaurant" +
-                    "&key=AIzaSyCqucIl0BRboqsKNSnvImqrpEGf36uaZrA";
-
-            JsonObjectRequest postRequest = new JsonObjectRequest (Request.Method.POST, url, null,
-                    new Response.Listener<JSONObject>()
-                    {
-                        public void onResponse(JSONObject response) {
-                            // response
-                            Log.d("Response", response.toString());
-                            try {
-                                //String busyness =  response.getJSONObject("analysis").getString("venue_live_busyness");
-                                JSONArray array = response.getJSONArray("results");
-                                for (int i = 0; i < array.length(); i++) {
-                                    JSONObject jsonObject = (JSONObject)array.get(i);
-                                    final String placeId = jsonObject.getString("place_id");
-                                    place_ids.add(placeId);
-
-                                }
-
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    },
-                    new Response.ErrorListener()
-                    {
-                        @Override
-                        public void onErrorResponse(VolleyError error) {
-                            // error
-                            Log.d("Error.Response", error.toString());
-                            Toast.makeText(getApplicationContext(), error.toString(),
-                                    Toast.LENGTH_SHORT);
-                        }
-                    }
-            ) {
-
-                @Override
-                protected Map<String, String> getParams()
-                {
-                    Map<String, String>  params = new HashMap<>();
-
-                    return params;
-                }
-            };
-            Log.d("response", postRequest.getBodyContentType());
-            queue.add(postRequest);
-
-        }
 
         mapFragment.getMapAsync(this);
         btnLogOut = (Button) findViewById(R.id.btnLogOut);
@@ -212,6 +170,89 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
                 String countPeople;
 
                 if (place != null) {
+
+                    String google_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
+                            "location=" +
+                            place.getLatLng().latitude +
+                            "," +
+                            place.getLatLng().longitude +
+                            "&radius=800" +
+                            "&type=restaurant" +
+                            "&key=AIzaSyCqucIl0BRboqsKNSnvImqrpEGf36uaZrA";
+
+                    JsonObjectRequest postRequestGoogle = new JsonObjectRequest (Request.Method.POST, google_url, null,
+                            new Response.Listener<JSONObject>()
+                            {
+                                public void onResponse(JSONObject response) {
+                                    // response
+                                    Log.d("Response", response.toString());
+                                    try {
+                                        //String busyness =  response.getJSONObject("analysis").getString("venue_live_busyness");
+                                        JSONArray array = response.getJSONArray("results");
+                                        for (int i = 0; i < array.length(); i++) {
+                                            JSONObject jsonObject = (JSONObject)array.get(i);
+                                            final String placeId = jsonObject.getString("place_id");
+                                            if (placeId.equals(place.getId()))
+                                                continue;
+                                            place_ids.add(placeId);
+
+                                        }
+                                        Random random = new Random();
+                                        for (String place_id: place_ids) {
+                                            final FetchPlaceRequest request = FetchPlaceRequest.newInstance(place_id,
+                                                    Arrays.asList(Place.Field.ADDRESS, Place.Field.LAT_LNG, Place.Field.ID, Place.Field.NAME));
+                                            placesClient = Places.createClient(UserActivity.this);
+                                            placesClient.fetchPlace(request).addOnSuccessListener((place_response) -> {
+                                                Place place = place_response.getPlace();
+                                                String busyness = String.valueOf(random.nextInt(100));
+                                                int busy = Integer.parseInt(busyness);
+                                                Log.i("success", "Place found: " + place.getName());
+
+                                                mMap.addMarker(new MarkerOptions().position(place.getLatLng())
+                                                        .title(place.getName()).snippet("Busyness: "
+                                                                + (busy  > 90 ? "busy" : "not busy")
+                                                        + maskText.getText().toString() + ": Unknown\n"
+                                                        + sanText.getText().toString() + ": Unknown\n")
+                                                        .icon((busy  < 90 ? BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+                                                                : BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))));
+
+                                            }).addOnFailureListener((exception) -> {
+                                                if (exception instanceof ApiException) {
+                                                    final ApiException apiException = (ApiException) exception;
+                                                    Log.e("Error", "Place not found: " + exception.getMessage());
+                                                    final int statusCode = apiException.getStatusCode();
+                                                    // TODO: Handle error with given status code.
+                                                }
+                                            });
+                                        }
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            },
+                            new Response.ErrorListener()
+                            {
+                                @Override
+                                public void onErrorResponse(VolleyError error) {
+                                    // error
+                                    Log.d("Error.Response", error.toString());
+                                    Toast.makeText(getApplicationContext(), error.toString(),
+                                            Toast.LENGTH_SHORT);
+                                }
+                            }
+                    ) {
+
+                        @Override
+                        protected Map<String, String> getParams()
+                        {
+                            Map<String, String>  params = new HashMap<>();
+
+                            return params;
+                        }
+                    };
+                    Log.d("response", postRequestGoogle.getBodyContentType());
+                    queue.add(postRequestGoogle);
+
                     String url = "https://besttime.app/api/v1/forecasts/live?api_key_private=pri_3c7463e5c776404abe86dd228d1d4da8&" +
                             "venue_name=" + place.getName() +
                             "&venue_address=" + place.getAddress();
@@ -225,11 +266,28 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
 
                                         String busyness =  response.getString("status") == "Error" ? "0" : response.getJSONObject("analysis").getString("venue_live_busyness");
                                         int busy = Integer.parseInt(busyness);
+                                        databaseReference.child("checkboxs").addListenerForSingleValueEvent(new ValueEventListener() {
+                                            @Override
+                                            public void onDataChange(DataSnapshot snapshot) {
+                                                if (!snapshot.hasChild(place.getId())) {
+                                                    // run some code
+                                                    databaseReference.child("checkboxs").child(place.getId()).setValue(
+                                                            new Checkboxs(false, false));
+
+                                                }
+                                            }
+
+                                            @Override
+                                            public void onCancelled(@NonNull DatabaseError error) {
+
+                                            }
+                                        });
                                         databaseReference.child("checkboxs").child("checkboxs").addValueEventListener(new ValueEventListener() {
                                             @Override
                                             public void onDataChange(DataSnapshot snapshot) {
                                                 try {
                                                     if (snapshot.getValue() != null) {
+                                                        Log.d("FBase", snapshot.getValue().toString());
                                                         for(DataSnapshot val : snapshot.getChildren()){
                                                             //I am not sure what record are you specifically looking for
                                                             //This is if you are getting the Key which is the record ID for your Coupon Object
@@ -240,7 +298,9 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
                                                                         .title(place.getName()).snippet("Busyness: "
                                                                                 + (busy  > 50 ? "busy" : "not busy") + "\n"
                                                                                 + maskText.getText().toString() +  (checkboxs.maskRequired ? ": Yes\n": ": No\n")
-                                                                                + sanText.getText().toString() + (checkboxs.sanitizerAvailable ? ": Yes\n": ": No\n")));
+                                                                                + sanText.getText().toString() + (checkboxs.sanitizerAvailable ? ": Yes\n": ": No\n") )
+                                                                                .icon((busy  < 50 ? BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+                                                                                : BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))));
                                                             }
 
 
@@ -250,7 +310,9 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
                                                                 .title(place.getName()).snippet("Busyness: "
                                                                         + (busy  > 50 ? "busy" : "not busy") + "\n"
                                                                         + maskText.getText().toString() +  ( ": Yes\n")
-                                                                        + sanText.getText().toString() + (": Yes\n")));
+                                                                        + sanText.getText().toString() + (": Yes\n"))
+                                                                .icon((busy  < 50 ? BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+                                                                        : BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))));
                                                     }
                                                 } catch (Exception e) {
                                                     e.printStackTrace();
@@ -279,11 +341,44 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
 
                                         String busyness =  "0";
                                         int busy = Integer.parseInt(busyness);
+                                        databaseReference.child("checkboxs").addListenerForSingleValueEvent(new ValueEventListener() {
+                                            @Override
+                                            public void onDataChange(DataSnapshot snapshot) {
+                                                if (!snapshot.hasChild(place.getId())) {
+                                                    // run some code
+                                                    databaseReference.child("checkboxs").child(place.getId()).setValue(
+                                                            new Checkboxs(false, false));
+
+                                                }
+                                            }
+
+                                            @Override
+                                            public void onCancelled(@NonNull DatabaseError error) {
+
+                                            }
+                                        });
+                                        databaseReference.child("checkboxs").addListenerForSingleValueEvent(new ValueEventListener() {
+                                            @Override
+                                            public void onDataChange(DataSnapshot snapshot) {
+                                                if (!snapshot.hasChild(place.getId())) {
+                                                    // run some code
+                                                    databaseReference.child("checkboxs").child(place.getId()).setValue(
+                                                            new Checkboxs(false, false));
+
+                                                }
+                                            }
+
+                                            @Override
+                                            public void onCancelled(@NonNull DatabaseError error) {
+
+                                            }
+                                        });
                                         databaseReference.child("checkboxs").child("checkboxs").addValueEventListener(new ValueEventListener() {
                                             @Override
                                             public void onDataChange(DataSnapshot snapshot) {
                                                 try {
                                                     if (snapshot.getValue() != null) {
+                                                        Log.d("FBase", snapshot.getValue().toString());
                                                         for(DataSnapshot val : snapshot.getChildren()){
                                                             //I am not sure what record are you specifically looking for
                                                             //This is if you are getting the Key which is the record ID for your Coupon Object
@@ -294,7 +389,9 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
                                                                         .title(place.getName()).snippet("Busyness: "
                                                                                 + (busy  > 50 ? "busy" : "not busy") + "\n"
                                                                                 + maskText.getText().toString() +  (checkboxs.maskRequired ? ": Yes\n": ": No\n")
-                                                                                + sanText.getText().toString() + (checkboxs.sanitizerAvailable ? ": Yes\n": ": No\n")));
+                                                                                + sanText.getText().toString() + (checkboxs.sanitizerAvailable ? ": Yes\n": ": No\n"))
+                                                                        .icon((busy  < 50 ? BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+                                                                                : BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))));
                                                             }
 
 
@@ -304,7 +401,9 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
                                                                 .title(place.getName()).snippet("Busyness: "
                                                                         + (busy  > 50 ? "busy" : "not busy") + "\n"
                                                                         + maskText.getText().toString() +  ( ": Yes\n")
-                                                                        + sanText.getText().toString() + (": Yes\n")));
+                                                                        + sanText.getText().toString() + (": Yes\n"))
+                                                                .icon((busy  < 50 ? BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+                                                                        : BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))));
                                                     }
                                                 } catch (Exception e) {
                                                     e.printStackTrace();
@@ -372,6 +471,13 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
     List<String> place_ids = new ArrayList<>();
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    PERMISSIONS,
+                    REQUEST_CODE_LOCATION_PERMISSION);
+        }
         mMap = googleMap;
         googleMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
 
@@ -392,65 +498,6 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Add a marker in Sydney and move the camera
 
-        for (String place_id: place_ids) {
-            final FetchPlaceRequest request = FetchPlaceRequest.newInstance(place_id,
-                    Arrays.asList(Place.Field.ADDRESS, Place.Field.ID, Place.Field.NAME));
-            placesClient = Places.createClient(UserActivity.this);
-            placesClient.fetchPlace(request).addOnSuccessListener((place_response) -> {
-                Place place = place_response.getPlace();
-                String besttime_url = "https://besttime.app/api/v1/forecasts/live?api_key_private=pri_3c7463e5c776404abe86dd228d1d4da8&" +
-                        "venue_name=" + place.getName() +
-                        "&venue_address=" + place.getAddress();
-                JsonObjectRequest post_request = new JsonObjectRequest (Request.Method.POST, besttime_url, null,
-                        new Response.Listener<JSONObject>()
-                        {
-                            public void onResponse(JSONObject response) {
-                                // response
-                                Log.d("Response", response.toString());
-                                try {
-                                    String busyness =  response.getString("status") == "Error" ? "0" : response.getJSONObject("analysis").getString("venue_live_busyness");
-                                    int busy = Integer.parseInt(busyness);
-                                    Log.i("success", "Place found: " + place.getName());
-                                    mMap.addMarker(new MarkerOptions().position(place.getLatLng())
-                                            .title(place.getName()));
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        },
-                        new Response.ErrorListener()
-                        {
-                            @Override
-                            public void onErrorResponse(VolleyError error) {
-                                // error
-                                Log.d("Error.Response", error.toString());
-                                Toast.makeText(getApplicationContext(), error.toString(),
-                                        Toast.LENGTH_SHORT);
-                            }
-                        }
-                ) {
-
-                    @Override
-                    protected Map<String, String> getParams()
-                    {
-                        Map<String, String>  params = new HashMap<>();
-
-                        return params;
-                    }
-                };
-                Log.d("response", post_request.getBodyContentType());
-                queue.add(post_request);
-
-
-            }).addOnFailureListener((exception) -> {
-                if (exception instanceof ApiException) {
-                    final ApiException apiException = (ApiException) exception;
-                    Log.e("Error", "Place not found: " + exception.getMessage());
-                    final int statusCode = apiException.getStatusCode();
-                    // TODO: Handle error with given status code.
-                }
-            });
-        }
         LatLng currentLocation = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
         mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
 
@@ -481,7 +528,92 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
                 return info;
             }
         });
-        mMap.addMarker(new MarkerOptions().position(currentLocation).title("Your current location"));
+        mMap.addMarker(new MarkerOptions().position(currentLocation).title("Your current location")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
+        if (mLastLocation != null ) {
+
+            String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
+                    "location=" +
+                    mLastLocation.getLatitude() +
+                    "," +
+                    mLastLocation.getLongitude() +
+                    "&radius=800" +
+                    "&type=restaurant" +
+                    "&key=AIzaSyCqucIl0BRboqsKNSnvImqrpEGf36uaZrA";
+
+            JsonObjectRequest postRequest = new JsonObjectRequest (Request.Method.POST, url, null,
+                    new Response.Listener<JSONObject>()
+                    {
+                        public void onResponse(JSONObject response) {
+                            // response
+                            Log.d("Response", response.toString());
+                            try {
+                                //String busyness =  response.getJSONObject("analysis").getString("venue_live_busyness");
+                                JSONArray array = response.getJSONArray("results");
+                                for (int i = 0; i < array.length(); i++) {
+                                    JSONObject jsonObject = (JSONObject)array.get(i);
+                                    final String placeId = jsonObject.getString("place_id");
+                                    place_ids.add(placeId);
+
+                                }
+                                Random random = new Random();
+                                for (String place_id: place_ids) {
+                                    final FetchPlaceRequest request = FetchPlaceRequest.newInstance(place_id,
+                                            Arrays.asList(Place.Field.ADDRESS, Place.Field.LAT_LNG, Place.Field.ID, Place.Field.NAME));
+                                    placesClient = Places.createClient(UserActivity.this);
+                                    placesClient.fetchPlace(request).addOnSuccessListener((place_response) -> {
+                                        Place place = place_response.getPlace();
+                                        String busyness = String.valueOf(random.nextInt(100));
+                                        int busy = Integer.parseInt(busyness);
+                                        Log.i("success", "Place found: " + place.getName());
+
+                                        mMap.addMarker(new MarkerOptions().position(place.getLatLng())
+                                                .title(place.getName()).snippet("Busyness: "
+                                                        + (busy  > 90 ? "busy" : "not busy" ) + "\n"
+                                                        + maskText.getText().toString() + ": Unknown\n"
+                                                        + sanText.getText().toString() + ": Unknown\n")
+                                                .icon((busy  < 90 ? BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+                                                        : BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))));
+
+                                    }).addOnFailureListener((exception) -> {
+                                        if (exception instanceof ApiException) {
+                                            final ApiException apiException = (ApiException) exception;
+                                            Log.e("Error", "Place not found: " + exception.getMessage());
+                                            final int statusCode = apiException.getStatusCode();
+                                            // TODO: Handle error with given status code.
+                                        }
+                                    });
+                                }
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    },
+                    new Response.ErrorListener()
+                    {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            // error
+                            Log.d("Error.Response", error.toString());
+                            Toast.makeText(getApplicationContext(), error.toString(),
+                                    Toast.LENGTH_SHORT);
+                        }
+                    }
+            ) {
+
+                @Override
+                protected Map<String, String> getParams()
+                {
+                    Map<String, String>  params = new HashMap<>();
+
+                    return params;
+                }
+            };
+            Log.d("response", postRequest.getBodyContentType());
+            queue.add(postRequest);
+
+        }
+
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 14));
         mMap.getUiSettings().setZoomGesturesEnabled(false);
     }
