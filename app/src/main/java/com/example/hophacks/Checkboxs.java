@@ -13,5 +13,6 @@ public class Checkboxs {
     public Checkboxs(boolean maskRequired, boolean sanitizerAvailable) {
         this.maskRequired = maskRequired;
         this.sanitizerAvailable = sanitizerAvailable;
+
     }
 }

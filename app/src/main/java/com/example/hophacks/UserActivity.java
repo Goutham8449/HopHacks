@@ -30,6 +30,11 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+
+
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -145,7 +150,7 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
                     "&type=restaurant" +
                     "&key=AIzaSyCqucIl0BRboqsKNSnvImqrpEGf36uaZrA";
 
-            JsonObjectRequest postRequest = new JsonObjectRequest (Request.Method.POST, url, null,
+            JsonObjectRequest postRequest = new JsonObjectRequest(Request.Method.POST, url, null,
                     new Response.Listener<JSONObject>()
                     {
                         public void onResponse(JSONObject response) {
@@ -212,7 +217,7 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
                 String countPeople;
 
                 if (place != null) {
-                    String url = "https://besttime.app/api/v1/forecasts/live?api_key_private=pri_3c7463e5c776404abe86dd228d1d4da8&" +
+                    String url = "https://besttime.app/api/v1/forecasts/live?api_key_private=pri_2a47f86f684e43ebaafe49299e435b23&" +
                             "venue_name=" + place.getName() +
                             "&venue_address=" + place.getAddress();
                     JsonObjectRequest postRequest = new JsonObjectRequest (Request.Method.POST, url, null,
@@ -225,44 +230,56 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
 
                                         String busyness =  response.getString("status") == "Error" ? "0" : response.getJSONObject("analysis").getString("venue_live_busyness");
                                         int busy = Integer.parseInt(busyness);
-                                        databaseReference.child("checkboxs").child("checkboxs").addValueEventListener(new ValueEventListener() {
-                                            @Override
-                                            public void onDataChange(DataSnapshot snapshot) {
-                                                try {
-                                                    if (snapshot.getValue() != null) {
-                                                        for(DataSnapshot val : snapshot.getChildren()){
+                                        if (busy==0){
+                                            mMap.addMarker(new MarkerOptions().position(place.getLatLng())
+                                                    .title(place.getName()).snippet("Busyness: "
+                                                            + (busy  > 50 ? "busy" : "not busy") + "\n"
+                                                            + maskText.getText().toString() +  ( ": Yes\n")
+                                                            + sanText.getText().toString() + (": Yes\n")));
+                                        }
+                                        else {
+                                            databaseReference.child("checkboxs").addValueEventListener(new ValueEventListener() {
+                                                @Override
+                                                public void onDataChange(DataSnapshot snapshot) {
+                                                    try {
+                                                        //if (snapshot.getValue() != null) {
+                                                        Log.d("", "In if before for");
+                                                        for (DataSnapshot val : snapshot.getChildren()) {
                                                             //I am not sure what record are you specifically looking for
                                                             //This is if you are getting the Key which is the record ID for your Coupon Object
-                                                            if(val.getKey().contains(place.getId())){
+                                                            Log.d("New", "" + val.getKey());
+                                                            if (val.getKey().contains(place.getId())) {
                                                                 //Do what you want with the record
-                                                                Checkboxs checkboxs = (Checkboxs)val.getValue();
+                                                                Checkboxs checkboxs = val.getValue(Checkboxs.class);
+                                                                Log.v("", "" + checkboxs.maskRequired);
                                                                 mMap.addMarker(new MarkerOptions().position(place.getLatLng())
                                                                         .title(place.getName()).snippet("Busyness: "
-                                                                                + (busy  > 50 ? "busy" : "not busy") + "\n"
-                                                                                + maskText.getText().toString() +  (checkboxs.maskRequired ? ": Yes\n": ": No\n")
-                                                                                + sanText.getText().toString() + (checkboxs.sanitizerAvailable ? ": Yes\n": ": No\n")));
+                                                                                + (busy > 50 ? "busy" : "not busy") + "\n"
+                                                                                + maskText.getText().toString() + (checkboxs.maskRequired ? ": Yes\n" : ": No\n")
+                                                                                + sanText.getText().toString() + (checkboxs.sanitizerAvailable ? ": Yes\n" : ": No\n")));
                                                             }
 
 
                                                         }
-                                                    } else {
+                                                    /*} else {
+                                                        Log.d("","In else");
                                                         mMap.addMarker(new MarkerOptions().position(place.getLatLng())
                                                                 .title(place.getName()).snippet("Busyness: "
                                                                         + (busy  > 50 ? "busy" : "not busy") + "\n"
                                                                         + maskText.getText().toString() +  ( ": Yes\n")
                                                                         + sanText.getText().toString() + (": Yes\n")));
+                                                    }*/
+                                                    } catch (Exception e) {
+                                                        e.printStackTrace();
                                                     }
-                                                } catch (Exception e) {
-                                                    e.printStackTrace();
                                                 }
-                                            }
 
-                                            @Override
-                                            public void onCancelled(@NonNull DatabaseError error) {
+                                                @Override
+                                                public void onCancelled(@NonNull DatabaseError error) {
 
-                                            }
-                                        });
-
+                                                }
+                                            });
+                                        }
 
 
                                         if (isAuth)
@@ -279,17 +296,19 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
 
                                         String busyness =  "0";
                                         int busy = Integer.parseInt(busyness);
-                                        databaseReference.child("checkboxs").child("checkboxs").addValueEventListener(new ValueEventListener() {
+                                        databaseReference.child("checkboxs").addValueEventListener(new ValueEventListener() {
                                             @Override
                                             public void onDataChange(DataSnapshot snapshot) {
                                                 try {
-                                                    if (snapshot.getValue() != null) {
+                                                    //if (snapshot.getValue() != null) {
                                                         for(DataSnapshot val : snapshot.getChildren()){
                                                             //I am not sure what record are you specifically looking for
                                                             //This is if you are getting the Key which is the record ID for your Coupon Object
                                                             if(val.getKey().contains(place.getId())){
                                                                 //Do what you want with the record
-                                                                Checkboxs checkboxs = (Checkboxs)val.getValue();
+                                                                Checkboxs checkboxs = val.getValue(Checkboxs.class);
+                                                                Log.d("","In 2 if");
+                                                                Log.v("",""+checkboxs.maskRequired);
                                                                 mMap.addMarker(new MarkerOptions().position(place.getLatLng())
                                                                         .title(place.getName()).snippet("Busyness: "
                                                                                 + (busy  > 50 ? "busy" : "not busy") + "\n"
@@ -299,13 +318,14 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                                                         }
-                                                    } else {
+                                                   /* } else {
+                                                        Log.d("","In 2 else");
                                                         mMap.addMarker(new MarkerOptions().position(place.getLatLng())
                                                                 .title(place.getName()).snippet("Busyness: "
                                                                         + (busy  > 50 ? "busy" : "not busy") + "\n"
                                                                         + maskText.getText().toString() +  ( ": Yes\n")
                                                                         + sanText.getText().toString() + (": Yes\n")));
-                                                    }
+                                                    }*/
                                                 } catch (Exception e) {
                                                     e.printStackTrace();
                                                 }
@@ -398,7 +418,7 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
             placesClient = Places.createClient(UserActivity.this);
             placesClient.fetchPlace(request).addOnSuccessListener((place_response) -> {
                 Place place = place_response.getPlace();
-                String besttime_url = "https://besttime.app/api/v1/forecasts/live?api_key_private=pri_3c7463e5c776404abe86dd228d1d4da8&" +
+                String besttime_url = "https://besttime.app/api/v1/forecasts/live?api_key_private=pri_2a47f86f684e43ebaafe49299e435b23&" +
                         "venue_name=" + place.getName() +
                         "&venue_address=" + place.getAddress();
                 JsonObjectRequest post_request = new JsonObjectRequest (Request.Method.POST, besttime_url, null,
