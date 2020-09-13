@@ -210,7 +210,7 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
 
                                                 mMap.addMarker(new MarkerOptions().position(place.getLatLng())
                                                         .title(place.getName()).snippet("Busyness: "
-                                                                + (busy  > 90 ? "busy" : "not busy")
+                                                                + (busy  > 90 ? "busy" : "not busy") + "\n"
                                                         + maskText.getText().toString() + ": Unknown\n"
                                                         + sanText.getText().toString() + ": Unknown\n")
                                                         .icon((busy  < 90 ? BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
@@ -253,7 +253,7 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
                     Log.d("response", postRequestGoogle.getBodyContentType());
                     queue.add(postRequestGoogle);
 
-                    String url = "https://besttime.app/api/v1/forecasts/live?api_key_private=pri_3c7463e5c776404abe86dd228d1d4da8&" +
+                    String url = "https://besttime.app/api/v1/forecasts/live?api_key_private=pri_3db17809031548a28822ba42239152f0&" +
                             "venue_name=" + place.getName() +
                             "&venue_address=" + place.getAddress();
                     JsonObjectRequest postRequest = new JsonObjectRequest (Request.Method.POST, url, null,
@@ -309,7 +309,7 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
                                                         mMap.addMarker(new MarkerOptions().position(place.getLatLng())
                                                                 .title(place.getName()).snippet("Busyness: "
                                                                         + (busy  > 50 ? "busy" : "not busy") + "\n"
-                                                                        + maskText.getText().toString() +  ( ": Yes\n")
+                                                                        + maskText.getText().toString() +  ( ": No\n")
                                                                         + sanText.getText().toString() + (": Yes\n"))
                                                                 .icon((busy  < 50 ? BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
                                                                         : BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))));
@@ -400,7 +400,7 @@ public class UserActivity extends FragmentActivity implements OnMapReadyCallback
                                                         mMap.addMarker(new MarkerOptions().position(place.getLatLng())
                                                                 .title(place.getName()).snippet("Busyness: "
                                                                         + (busy  > 50 ? "busy" : "not busy") + "\n"
-                                                                        + maskText.getText().toString() +  ( ": Yes\n")
+                                                                        + maskText.getText().toString() +  ( ": No\n")
                                                                         + sanText.getText().toString() + (": Yes\n"))
                                                                 .icon((busy  < 50 ? BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
                                                                         : BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))));
